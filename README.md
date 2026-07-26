@@ -119,7 +119,23 @@ Responsabilidades:
 
 - Modelo por defecto: `google/flan-t5-small`
 - Modelo recomendado para mayor capacidad: `google/flan-t5-base`
-- Backend: `transformers` en tarea `text2text-generation`
+- Backend: `transformers` (serie 4.x) en tarea `text2text-generation`
+- Requisito practico: Python 3.12 con `torch` instalado.
+- Dependencia fijada: `transformers<5` para compatibilidad estable con FLAN-T5.
+- Se incluye `hf_xet` para mejorar descarga/cache cuando el repositorio usa Xet Storage.
+
+Prioridad de ejecucion QA:
+
+1. Modelo local (transformers + torch).
+2. Inferencia remota de Hugging Face (si local no produce salida usable).
+3. Fallback deterministico como ultimo recurso.
+
+Los scripts `scripts/run.ps1` y `scripts/run.sh` intentan instalar automaticamente el extra `local-model` para facilitar la evaluacion.
+
+Variables opcionales para operacion:
+
+- `QA_PROGRESS=1|0`: habilita/deshabilita barra de progreso en etapa QA.
+- `QA_CPU_THREADS=<n>`: fija cantidad de hilos CPU para backend local con torch (por defecto usa multinucleo automaticamente).
 
 ### Modo offline deterministico
 
@@ -158,6 +174,10 @@ data/
 
 ## Ejecucion recomendada
 
+Requisito de entorno para esta version: Python 3.12.
+
+En Windows, para evitar problemas de rutas largas al instalar `torch` en OneDrive, se recomienda usar un entorno corto compartido en `C:\v312_meli`.
+
 ### Opcion 1: script directo (mas simple)
 
 Windows (PowerShell):
@@ -175,15 +195,28 @@ bash ./scripts/run.sh
 Estos scripts:
 
 1. Se posicionan en la raiz del repo.
-2. Crean/activan `.venv` si hace falta.
+2. Priorizan entorno Python 3.12 sano:
+  - `.venv312` en el repo, o
+  - `C:\v312_meli` en Windows si existe y esta sano.
 3. Instalan dependencias solo si no estan presentes.
 4. Ejecutan el pipeline en modo reproducible.
 5. Verifican los archivos objetivo.
+
+### Limpieza de entorno
+
+- Se recomienda no versionar entornos locales (`.venv`, `.venv312`).
+- Si necesitas limpiar el repo, elimina carpetas de entorno locales y vuelve a ejecutar `scripts/run.ps1` o `scripts/run.sh`.
 
 ### Opcion 2: ejecucion manual por modulo Python
 
 ```bash
 python -m src.cli healthcheck
+python -m src.cli run --docs-root docs_raw --processed-dir data/processed
+```
+
+Para forzar modo offline deterministico de forma explicita:
+
+```bash
 python -m src.cli run --docs-root docs_raw --processed-dir data/processed --fallback-only
 ```
 

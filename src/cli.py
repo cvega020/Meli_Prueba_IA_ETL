@@ -38,15 +38,16 @@ def run(
         help="Carpeta de salida para corpus.jsonl y qa_dataset.jsonl.",
     ),
     lsh_threshold: float = typer.Option(0.9, min=0.01, max=1.0, help="Umbral de Jaccard para deduplicacion."),
-    qa_model: str = typer.Option(
-        os.getenv("QA_MODEL", DEFAULT_MODEL),
+    qa_model: str | None = typer.Option(
+        None,
         help="Identificador de modelo local de Hugging Face para Q&A.",
     ),
     qa_chunk_size: int = typer.Option(1800, min=200, help="Tamano del chunk en caracteres."),
     questions_per_chunk: int = typer.Option(2, min=1, max=5, help="Cantidad de pares Q&A por chunk."),
-    fallback_only: bool = typer.Option(
-        _env_bool("QA_FALLBACK_ONLY", False),
-        "--fallback-only",
+    qa_max_new_tokens: int = typer.Option(120, min=32, max=512, help="Maximo de tokens nuevos por generacion QA."),
+    fallback_only: bool | None = typer.Option(
+        None,
+        "--fallback-only/--no-fallback-only",
         help="Omitir carga del modelo y usar generacion deterministica offline.",
     ),
     log_level: str = typer.Option("INFO", help="Nivel de logging (DEBUG, INFO, WARNING, ERROR)."),
@@ -64,21 +65,25 @@ def run(
 
     load_dotenv()
     _setup_logging(log_level)
+
+    resolved_qa_model = qa_model or os.getenv("QA_MODEL", DEFAULT_MODEL)
+    resolved_fallback_only = fallback_only if fallback_only is not None else _env_bool("QA_FALLBACK_ONLY", False)
     logger.info(
         "Inicio de ejecucion | docs_root=%s | processed_dir=%s | fallback_only=%s",
         docs_root.as_posix(),
         processed_dir.as_posix(),
-        fallback_only,
+        resolved_fallback_only,
     )
 
     result = run_pipeline(
         docs_root=docs_root,
         processed_dir=processed_dir,
         lsh_threshold=lsh_threshold,
-        qa_model=qa_model,
+        qa_model=resolved_qa_model,
         qa_chunk_size=qa_chunk_size,
         questions_per_chunk=questions_per_chunk,
-        qa_fallback_only=fallback_only,
+        qa_max_new_tokens=qa_max_new_tokens,
+        qa_fallback_only=resolved_fallback_only,
     )
 
     logger.info(
