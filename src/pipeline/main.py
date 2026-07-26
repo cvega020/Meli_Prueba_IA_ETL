@@ -110,6 +110,7 @@ def run_pipeline(
     qa_model: str = "google/flan-t5-small",
     qa_chunk_size: int = 1800,
     questions_per_chunk: int = 2,
+    qa_max_new_tokens: int = 120,
     qa_fallback_only: bool = False,
     qa_generator: Any = None,
 ) -> PipelineResult:
@@ -174,8 +175,10 @@ def run_pipeline(
         model_name=qa_model,
         chunk_size=qa_chunk_size,
         questions_per_chunk=questions_per_chunk,
+        max_new_tokens=qa_max_new_tokens,
         fallback_only=qa_fallback_only,
     )
+    qa_backend = getattr(qa, "backend", "unknown")
 
     generated: dict[str, list[QAPair]] = qa.generate_for_documents(unique_docs)
     docs_by_id = {doc.id: doc for doc in unique_docs}
@@ -212,8 +215,10 @@ def run_pipeline(
             "lsh_num_perm": lsh_num_perm,
             "lsh_shingle_size": lsh_shingle_size,
             "qa_model": qa_model,
+            "qa_backend": qa_backend,
             "qa_chunk_size": qa_chunk_size,
             "questions_per_chunk": questions_per_chunk,
+            "qa_max_new_tokens": qa_max_new_tokens,
             "qa_fallback_only": qa_fallback_only,
         },
         ingested_count=len(docs),
